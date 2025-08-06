@@ -91,4 +91,5 @@ def user_disconnected():
 if __name__ == '__main__':
     socketio.run(app, debug=True)
 # app.py
+
 # This file contains the main application logic for the chat application.   
