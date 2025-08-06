@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Private Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emoji-button@4.6.4/dist/index.min.js"></script>
+</head>
+<body>
+<div class="chat-container">
+    <h3>Welcome, {{ username }} <a href="/logout" class="btn btn-sm btn-danger float-end">Logout</a></h3>
+    <div id="chat-box"></div>
+    <div id="typing" class="text-muted"></div>
+    <div class="input-group mt-3">
+        <input type="text" id="message" class="form-control" placeholder="Type a message...">
+        <button id="emoji-btn" class="btn btn-outline-secondary">😊</button>
+        <button id="send" class="btn btn-primary">Send</button>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    const username = "{{ username }}";
+    const chatBox = document.getElementById("chat-box");
+    const messageInput = document.getElementById("message");
+    const sendBtn = document.getElementById("send");
+    const emojiBtn = document.getElementById("emoji-btn");
+    const typingStatus = document.getElementById("typing");
+
+    const chatMessages = { messages_tojson_safe };
+    chatMessages.forEach(msg => {
+        const sender = msg[0];
+        const content = msg[1];
+        const isMine = sender === username ? "my-message" : "";
+        chatBox.innerHTML += `<div class="message ${isMine}"><strong>${sender}:</strong> ${content}</div>`;
+    });
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    sendBtn.onclick = () => {
+        const msg = messageInput.value.trim();
+        if (msg) {
+            socket.emit("send_message", { message: msg });
+            messageInput.value = "";
+        }
+    };
+
+    messageInput.addEventListener("input", () => {
+        socket.emit("typing", { sender: username });
+    });
+
+    socket.on("receive_message", data => {
+        const isMine = data.sender === username ? "my-message" : "";
+        chatBox.innerHTML += `<div class="message ${isMine}"><strong>${data.sender}:</strong> ${data.message}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    socket.on("show_typing", data => {
+        if (data.sender !== username) {
+            typingStatus.innerText = `${data.sender} is typing...`;
+            setTimeout(() => typingStatus.innerText = "", 1500);
+        }
+    });
+
+    const picker = new EmojiButton();
+    emojiBtn.addEventListener('click', () => picker.togglePicker(emojiBtn));
+    picker.on('emoji', emoji => {
+        messageInput.value += emoji;
+        messageInput.focus();
+    });
+</script>
+</body>
+</html>
